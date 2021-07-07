@@ -130,14 +130,26 @@ df_hl = spark.read.parquet(hl_path)
 df_hl1 = df_hl.withColumn('home_geohash6',df_hl.home_geohash[0:6]).select('ifa','home_geohash6','home_state', 'home_district', 'home_parlimen')
 
 
-# final joining
+# Second last joining
 
 df_p9 = df_p8.join(df_hl1,df_p8.old_ifa==df_hl1.ifa,how='left')
 df_p9 = df_p9.drop('ifa','ifa','ifa')
 
+# flatten the carrier Column()
+
+df_q1 = df_p9.select('old_ifa',F.explode('cellular_carriers'))
+
+df_q2 = df_q1.withColumnRenamed('col','carriers')
+
+df_q3 = df_p9.join(df_q2, on = 'old_ifa', how='left')
+
+df_q4 = df_q3.drop('cellular_carriers')
+
+df_q5 = df_q4.withColumnRenamed('carriers','cellular_carriers')
+
 # Output file
 
-df_p9.write.format('parquet').option('compression','snappy').save('s3a://ada-dev/ishti/ds_dash1')
+df_q5.write.format('parquet').option('compression','snappy').save('s3a://ada-dev/ishti/ds_dash2')
 
 # household_id df
 
